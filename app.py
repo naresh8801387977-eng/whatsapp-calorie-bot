@@ -1,3 +1,12 @@
+# WhatsApp Calorie Bot — Full Repository (Flask + Twilio + Image Support)
+
+This canvas contains the full files you need. Copy each file into your GitHub repository (or use the web editor) and deploy to Render as before.
+
+---
+
+## File: `app.py`
+
+```python
 # app.py
 import os
 import sqlite3
@@ -203,8 +212,6 @@ def handle_incoming(wa_from, body, num_media, media_urls):
             # Create a quick reply and ask to confirm
             resp_text = (f"I detected *{parsed}* from the photo — estimated *{int(kcal)} kcal* for {query}.\n"
                          f"Reply `yes` to log this, or reply with `add <food> <qty>` to correct (eg: add banana 2).")
-            # Save the detection temporarily by storing inferred values in a simple session? (we will rely on user reply)
-            # For simplicity we'll prompt and wait for user confirmation.
             return resp_text
         else:
             # fallback to local DB lookup by label
@@ -247,21 +254,17 @@ def handle_incoming(wa_from, body, num_media, media_urls):
         nx = None
         if NUTRITIONIX_APP_ID and NUTRITIONIX_APP_KEY:
             try:
-                # natural query like "2 apple"
                 nx = nutritionix_query(f"{qty} {food_name}")
             except:
                 nx = None
 
         if nx:
             kcal = nx["kcal"]
-            # log to local DB if the item exists or create a generic entry (we will fallback to not creating a food item)
-            # Try to find local id:
             matches = find_food_local(food_name)
             if matches:
                 fid = matches[0][0]
                 log_food_local(uid, fid, qty, kcal)
             else:
-                # create a temp local row for this food
                 conn = sqlite3.connect(DB)
                 c = conn.cursor()
                 try:
@@ -278,7 +281,6 @@ def handle_incoming(wa_from, body, num_media, media_urls):
             total = today_total(uid)
             return f"Logged {qty} x {food_name} = {int(kcal)} kcal. Today: {int(total)}/{get_or_create_user(wa_from)[1]} kcal."
 
-        # Fallback: local DB or ask user
         matches = find_food_local(food_name)
         if not matches:
             return f"No local data for '{food_name}'. Try: add <food> <qty> with a common food name or try the web version."
@@ -338,3 +340,58 @@ if __name__ == "__main__":
     # required for local debugging
     init_db()
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+```
+
+---
+
+## File: `requirements.txt`
+
+```
+Flask==2.2.5
+twilio>=8.0.0,<9.0.0
+gunicorn==20.1.0
+requests==2.31.0
+pillow==10.0.0
+google-cloud-vision==3.9.0
+```
+
+---
+
+## File: `Procfile`
+
+```
+web: gunicorn app:app
+```
+
+---
+
+## File: `README.md`
+
+```
+# WhatsApp Calorie Bot
+
+This bot receives WhatsApp messages (text + images), detects food from images, and logs calories.
+
+## Deploy
+1. Push files to GitHub.
+2. Deploy to Render (create a new Web Service, Python 3, Build: `pip install -r requirements.txt`, Start: `gunicorn app:app`).
+3. Set environment variables on Render: `NUTRITIONIX_APP_ID`, `NUTRITIONIX_APP_KEY`, and optionally upload Google credentials and set `GOOGLE_APPLICATION_CREDENTIALS`.
+4. In Twilio Sandbox, set webhook to `https://<your-render-url>/webhook` and join sandbox on your phone.
+
+## Commands
+- `add <food> <qty>` — log food
+- `today` — show today's total
+- `settarget <kcal>` — set daily target
+
+Send a food photo and the bot will try to identify and estimate calories.
+```
+
+---
+
+## Next steps I will help you with (choose any)
+
+* I can paste these files into your GitHub repo for you (I cannot perform commits myself). I will provide exact copy-paste instructions for the GitHub web editor.
+* I can give step-by-step Render env var instructions (how to upload Google credentials if needed).
+* I can switch the image-labeling code to a REST-based provider (no Google) if you'd like.
+
+Tell me which next step you want and I will guide you **one-by-one**.
